@@ -1,6 +1,6 @@
 # British-Monarchy-VEGA-Chart
-British Monarchy chart built with VEGA, presented in Power BI Deneb visual
 
+[English & British Monarchy Timeline](https://app.powerbi.com/view?r=eyJrIjoiNWMyMTkxYjktMWI2OS00ZjJiLWE0MGEtN2NlNjFlNzFlZjFiIiwidCI6IjRjNDFkY2ZjLTRkOWMtNGZiMi1iNGZmLWQ3YTZkNWM5NDM0YiJ9) chart built with VEGA, presented in Power BI Deneb visual
 
 The chart primarily visualizes historical figures such as Monarchs, Regents, and others. Their lifetimes are depicted as white rectangles, with reign periods highlighted using colored rectangles inside. The color coding corresponds to the country they ruled—e.g., red for England, green for Ireland. Marriages are indicated by grey rectangles, while regents' reigns are shown in light green.
 
