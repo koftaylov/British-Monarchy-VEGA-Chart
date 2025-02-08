@@ -1,0 +1,2637 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "description": "Virst version of monarchs chart",
+  //"width": 1000,
+  //"height":600,
+  "resize":"true",
+  "autosize":"fit",
+  "padding":{"top":1,"right":1,"bottom": 1,"left": 5},
+  //"title":"British Monarchy",
+  "background": {"signal":"BackgroundColour"},
+
+//==================================================================================
+
+  "data": [
+    {
+      "name": "dataset",
+      "transform": [
+        {
+          "type":"formula",
+          "as": "LifeEnd2",
+          "expr": "datum['LifeEnd'] == null ? now() : datum['LifeEnd']"
+        },
+        {
+          "type":"formula",
+          "as": "Spouses_1End2",
+          "expr": "datum.Spouses_1Begin != null && datum.Spouses_1End == null && datum['Type'] == 'Spouse'? now() : datum.Spouses_1End"
+        },
+        {
+          "type":"formula",
+          "as": "Spouses_2End2",
+          "expr": "datum.Spouses_2Begin != null &&datum.Spouses_2End == null && datum['Type'] == 'Spouse'? now() : datum.Spouses_2End"
+        },
+        {
+          "type":"formula",
+          "as": "Spouses_3End2",
+          "expr": "datum.Spouses_3Begin != null &&datum.Spouses_3End == null && datum['Type'] == 'Spouse'? now() : datum.Spouses_3End"
+        },
+        {
+          "type":"formula",
+          "as": "Spouses_4End2",
+          "expr": "datum.Spouses_4Begin != null &&datum.Spouses_4End == null && datum['Type'] == 'Spouse'? now() : datum.Spouses_4End"
+        },
+        {
+          "type":"formula",
+          "as": "Reign1End2",
+          "expr": "datum.Reign1End == null && datum.Reign1Begin != null ? now() : datum.Reign1End"
+        },
+        {
+          "type": "joinaggregate",
+          "fields": ["LifeEnd2"],
+          "ops": ["max"],
+          "as": ["LifeEndmax"]
+
+        },
+        {
+          "type": "joinaggregate",
+          "fields": ["LifeBegin"],
+          "ops": ["min"],
+          "as": ["LifeBeginmin"]
+
+        }
+      ]
+
+    },
+    {
+      "name":"cleandataset",
+      "source":"dataset",
+      "transform": [
+        {
+          "type": "lookup",
+          "from": "dataset",
+          "key": "Name",
+          "fields": ["Spouses_1"],
+          "as": ["Spouse_1Match"]
+        },
+        {
+          "type": "lookup",
+          "from": "dataset",
+          "key": "Name",
+          "fields": ["Spouses_2"],
+          "as": ["Spouse_2Match"]
+        },
+        {
+          "type": "lookup",
+          "from": "dataset",
+          "key": "Name",
+          "fields": ["Spouses_3"],
+          "as": ["Spouse_3Match"]
+        },
+        {
+          "type": "lookup",
+          "from": "dataset",
+          "key": "Name",
+          "fields": ["Spouses_4"],
+          "as": ["Spouse_4Match"]
+        },
+        {
+          "type": "lookup",
+          "from": "dataset",
+          "key": "Mother",
+          "fields": ["Name"],
+          "as": ["MotherMatch"]
+        },
+        {
+          "type": "lookup",
+          "from": "dataset",
+          "key": "Father",
+          "fields": ["Name"],
+          "as": ["FatherMatch"]
+        },
+        {
+          "type":"filter","expr": "datum.Type != 'Event' && ( (datum.FatherMatch != null || datum.MotherMatch != null || datum.Spouse_4Match != null || datum.Spouse_3Match != null || datum.Spouse_2Match != null || datum.Spouse_1Match != null) && datum.Type == 'Spouse' || datum.Type != 'Spouse')"
+        }
+      ]
+
+    },
+    {
+      "name":"persons",
+      "source":"cleandataset",
+      "transform": [
+        {
+          "type": "window",
+          "ops": ["rank"],
+          "as": ["rank"],  
+          "groupby": ["Name"],
+          "sort": {"field": "GUID", "order": "ascending"}
+        },
+        
+        {
+          "type":"filter","expr": "datum.rank == 1"
+        }
+    ]
+    },
+    
+    {
+      "name":"SecondReign",
+      "source":"cleandataset",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum['Reign2Begin'] != null && datum['Type'] == 'Monarch'"
+        }
+      ]
+    },
+
+     {
+      "name":"MonarchEngland",
+      "source":"cleandataset",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum.Reign1Begin != null && datum.Type == 'Monarch' && (indexof(datum.Title,'of England')>=0 || indexof(datum.Title,'Great Britain')>=0 || indexof(datum.Title,'United Kingdom')>=0)"
+        }
+      ]
+    },
+
+    {
+      "name":"MonarchScotland",
+      "source":"cleandataset",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum['Reign1Begin'] != null && datum['Type'] == 'Monarch' && indexof(datum.Title,'of Scotland')>=0"
+        }
+      ]
+    },
+
+    {
+      "name":"MonarchIreland",
+      "source":"cleandataset",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum['Reign1Begin'] != null && datum['Type'] == 'Monarch' && indexof(datum.Title,'of Ireland')>=0"
+        }
+      ]
+    },
+    {
+      "name": "Epoch",
+      "source":"persons",
+      "transform": [
+        {"type": "filter", "expr": "datum['_EpochSelected']"}
+      ]
+    },
+
+    {
+      "name": "Reign1HouseShadows",
+      "source":"persons",
+      "transform": [
+        {"type": "filter", "expr": "ReignHouses && datum['Type'] == 'Monarch'"}
+      ]
+    },
+
+    {
+      "name": "Reign2HouseShadows",
+      "source":"persons",
+      "transform": [
+        {"type": "filter", "expr": "ReignHouses && datum['Type'] == 'Monarch' && datum['Reign2Begin'] != null"}
+      ]
+    },
+
+    {
+      "name": "monarchBirthLineOwn",
+      "source":"persons",
+      "transform": [
+        //{ "type": "filter", "expr": "datum['Type'] === 'Monarch'" },
+        {
+          "type": "lookup",
+          "from": "persons",
+          "key": "Name",
+          "fields": ["Father"],
+          "as": ["FatherMatch"]
+        },
+        {
+          "type": "lookup",
+          "from": "persons",
+          "key": "Name",
+          "fields": ["Mother"],
+          "as": ["MotherMatch"]
+        },
+       
+        { "type": "filter", "expr": " (datum['FatherMatch'] != null && datum['Father'] != null) || (datum['MotherMatch'] != null && datum['Mother'] != null) && BirthLines"}
+        ]
+    },
+    {
+      "name": "monarchBirthLineFather",
+      "source":"persons",
+      "transform": [
+        {
+          "type": "lookup",
+          "from": "persons",
+          "key": "Name",
+          "fields": ["Father"],
+          "as": ["FatherMatch"]
+        },
+        {
+          "type": "filter","expr": "datum['FatherMatch'] != null"
+        },
+        //{ "type": "filter", "expr": "datum['Type'] === 'Monarch'" },
+        { "type": "filter", "expr": "datum['Father'] != null && BirthLines" }
+      ]
+    },
+    {
+      "name": "monarchBirthLineMother",
+      "source":"persons",
+      "transform": [
+        {
+          "type": "lookup",
+          "from": "persons",
+          "key": "Name",
+          "fields": ["Mother"],
+          "as": ["MotherMatch"]
+        },
+        
+        {
+          "type": "filter",
+          "expr": "datum['MotherMatch'] != null"
+        },
+        //{ "type": "filter", "expr": "datum['Type'] === 'Monarch'" },
+        { "type": "filter", "expr": "datum['Mother'] != null && BirthLines" }
+        //,{
+       // "type": "filter",
+      // "expr": "indexof(data('dataset').Name, datum.Mother) !== -1"
+      //}
+        ]
+    },
+    {
+      "name": "regents",
+      "source":"cleandataset",
+      "transform": [
+       
+        { "type": "filter", "expr": "datum['RegentBegin'] != null && datum['RegentEnd'] != null" }
+        
+        ]
+    },
+    {
+      "name": "Successors",
+      "source":"cleandataset",
+      "transform": [
+        {
+          "type": "lookup",
+          "from": "cleandataset",
+          "key": "Name",
+          "fields": ["Successor"],
+          "as": ["SuccessorMatch"]
+        },
+        {
+          "type": "filter","expr": "SuccessionLine && datum['SuccessorMatch'] != null && datum['Type'] === 'Monarch'"
+        }
+      ]
+    },
+    {
+      "name": "Successors2",
+      "source":"cleandataset",
+      "transform": [
+        {
+          "type": "lookup",
+          "from": "cleandataset",
+          "key": "Name",
+          "fields": ["Successor2"],
+          "as": ["SuccessorMatch"]
+        },
+        {
+          "type": "filter","expr": "SuccessionLine && datum['SuccessorMatch'] != null && datum['Type'] === 'Monarch' && datum['Reign2Begin'] != null"
+        }
+      ]
+    },
+    {
+      "name": "Successors12",
+      "source":"cleandataset",
+      "transform": [
+        {
+          "type": "lookup",
+          "from": "cleandataset",
+          "key": "Name",
+          "fields": ["Successor12"],
+          "as": ["SuccessorMatch"]
+        },
+        {
+          "type": "filter","expr": "SuccessionLine && datum['SuccessorMatch'] != null && datum['Type'] === 'Monarch' && datum['Reign1Begin'] != null"
+        }
+      ]
+    },
+
+
+    {
+      "name": "Spouses1",
+      "source":"persons",
+      "transform": [
+        {
+          "type": "lookup",
+          "from": "cleandataset",
+          "key": "Name",
+          "fields": ["Spouses_1"],
+          "as": ["Spouse_1Match"]
+        },
+        {
+          "type": "lookup",
+          "from": "cleandataset",
+          "key": "Mother",
+          "fields": ["Name"],
+          "as": ["MotherMatch"]
+        },
+        {
+          "type": "filter",
+          "expr": "(datum['Type'] == 'Spouse' || datum['Type'] == 'Monarch Mother') && datum['Spouses_1'] != null  && (datum.Spouse_1Match != null || datum.MotherMatch != null)"
+        }
+        
+        ]
+    },
+    {
+      "name": "Spouses2",
+      "source":"persons",
+      "transform": [
+       
+        { "type": "filter", "expr": "(datum['Type'] == 'Spouse'|| datum['Type'] == 'Monarch Mother') && datum['Spouses_2'] != null" }
+        
+        ]
+    },
+    {
+      "name": "Spouses3",
+      "source":"persons",
+      "transform": [
+       
+        { "type": "filter", "expr": "(datum['Type'] == 'Spouse'|| datum['Type'] == 'Monarch Mother') && datum['Spouses_3'] != null" }
+        
+        ]
+    },
+    {
+      "name": "Spouses4",
+      "source":"persons",
+      "transform": [
+       
+        { "type": "filter", "expr": "(datum['Type'] == 'Spouse'|| datum['Type'] == 'Monarch Mother') && datum['Spouses_4'] != null" }
+        
+        ]
+    },
+    {
+      "name": "Spouses1Shadow",
+      "source":"persons",
+      "transform": [
+       {
+          "type": "lookup",
+          "from": "persons",
+          "key": "Name",
+          "fields": ["Spouses_1"],
+          "as": ["SpouseMatch"]
+        },
+        {
+          "type": "filter",
+          "expr": "datum['SpouseMatch'] != null && (datum['Type'] == 'Spouse' || datum['Type'] == 'Monarch Mother') && datum['Spouses_1'] != null && Spouses"
+        }
+        
+        ]
+    },
+    {
+      "name": "Spouses2Shadow",
+      "source":"persons",
+      "transform": [
+       {
+          "type": "lookup",
+          "from": "persons",
+          "key": "Name",
+          "fields": ["Spouses_2"],
+          "as": ["SpouseMatch"]
+        },
+        { "type": "filter", "expr": "datum['SpouseMatch'] != null &&(datum['Type'] == 'Spouse'|| datum['Type'] == 'Monarch Mother') && datum['Spouses_2'] != null && Spouses" }
+        
+        ]
+    },
+    {
+      "name": "Spouses3Shadow",
+      "source":"persons",
+      "transform": [
+       {
+          "type": "lookup",
+          "from": "persons",
+          "key": "Name",
+          "fields": ["Spouses_3"],
+          "as": ["SpouseMatch"]
+        },
+        { "type": "filter", "expr": "datum['SpouseMatch'] != null &&(datum['Type'] == 'Spouse'|| datum['Type'] == 'Monarch Mother') && datum['Spouses_3'] != null && Spouses" }
+        
+        ]
+    },
+    {
+      "name": "Spouses4Shadow",
+      "source":"persons",
+      "transform": [
+       {
+          "type": "lookup",
+          "from": "persons",
+          "key": "Name",
+          "fields": ["Spouses_4"],
+          "as": ["SpouseMatch"]
+        },
+        { "type": "filter", "expr": "datum['SpouseMatch'] != null &&(datum['Type'] == 'Spouse'|| datum['Type'] == 'Monarch Mother') && datum['Spouses_4'] != null && Spouses" }
+        
+        ]
+    },
+    // {
+    //   "name": "filteredData",
+    //   "source": "dataset",
+    //   "transform": [
+    //     {
+    //       "type": "filter",
+    //       "expr": "!selectedName || datum.Name === selectedName"
+    //     }
+    //   ]
+    // }
+
+    {
+      "name":"dataevents",
+      "source":"dataset",
+      "transform": [
+        {
+          "type":"filter","expr": "datum.Type == 'Event' && Events"
+        },
+        {"type": "collect", "sort": {"field": "Successor"}}
+        
+    ]
+    }
+
+  ],
+
+
+  
+
+
+//==================================================================================
+
+  "signals": [
+    {
+      "name":"BackgroundColour",
+      "update": "if(ColourScheme == 'Classic & Royal', '#FFFFFF',  if(ColourScheme == 'Elegant & Historical', '#EDEDED',  if(ColourScheme == 'Regal & Bold', '#FFFDD0',  if(ColourScheme == 'Modern & Minimalist', '#F0F0F0',  if(ColourScheme == 'Subtle & Professional', '#F5F5F5', '#FFFFFF')))))"
+    },
+    {
+      "name": "ColourScheme",
+      "value": "My style"
+    },
+    {
+      "name":"DomainYears",
+      "update":"FitYears ? [minyear,maxyear]:[data('cleandataset')[0].LifeBeginmin, data('cleandataset')[0].LifeEndmax]"
+    },
+    {
+      "name": "FitYears",
+      "value":false,
+      "update": "if(indexof(data('cleandataset')[0].Options, 'FitYears') >= 0,true,false)"
+    },
+    {
+      "name":"minyear",
+      "update":"data('cleandataset')[0]._minyear"
+    },
+    {
+      "name":"maxyear",
+      "update":"data('cleandataset')[0]._maxyear"
+    },
+    {
+      "name": "stepGap", 
+      "update": "bandHeight*0.7"
+    },
+
+    {
+      "name": "bandHeight",
+      "value": 0,
+      "update": "if((height-padding.top-40) / length(data('persons'))>80,80,(height-padding.top-40) / length(data('persons')))"
+      // "update": "if((height-padding.top-40) / length(data('persons'))>80,80,if((height-padding.top-40) / length(data('persons'))<20,20,(height-padding.top-40) / length(data('persons'))))"
+    },
+    {
+      "name": "bandHeightOld",
+      "value": 0,
+      "update": "(height-padding.top-40) / length(data('persons'))"
+    },
+    {
+      "name":"TotalOffset",
+      "update":"(height - bandHeight*length(data('persons')))/2<0 ? 0 : ((height - bandHeight*length(data('persons')))/2<=(padding.top+20) ? 0 : (height - bandHeight*length(data('persons')))/2) "
+    },
+    {
+      "name": "selectedName",
+      "value": null,
+      "on": [
+        {
+          "events": "rect:click",
+          "update": "!showlinkurl ? ( datum.Name === selectedName ? null : datum.Name) : null"
+        },
+        {
+          "events": "text:click",
+          "update": "!showlinkurl ? ( datum.Name === selectedName ? null : datum.Name) : null"
+        }
+      ]
+    },
+    {
+      "name":"showlinkurl",
+      "value":false,
+      "update":"if(indexof(data('cleandataset')[0].Options, 'Hyperlinks') >= 0,true,false)"
+    },
+    {
+      "name":"PersonFillColour",
+      "update": "if(ColourScheme == 'Classic & Royal', '#FFFFFF',  if(ColourScheme == 'Elegant & Historical', '#FFFFFF',  if(ColourScheme == 'Regal & Bold', '#FFFFFF',  if(ColourScheme == 'Modern & Minimalist', '#FFFFFF',  if(ColourScheme == 'Subtle & Professional', '#FFFFFF', '#FFFFFF')))))"
+    }
+
+
+    ,
+  //    {
+  //     "name": "PowerBISelection",
+  //     "update": "{'Name': selectedName}"
+  //    },
+  //   ,
+    {
+      "name": "tooltip",
+      "value": {},
+      "on": [
+        {"events": "rect:mouseover", "update": "datum ? datum : {}"},
+        {"events": "rect:mouseout",  "update": "{}"}
+        ,{"events": "text:mouseover", "update": "datum ? datum : {}"}
+        ,{"events": "text:mouseout",  "update": "{}"}
+      ]
+    },
+
+  //   {
+  //     "name":"hoveroverid",
+  //     "value": {},
+  //     "on": [
+  //       {"events": "mouseover", "update": "event.item.mark.name"},
+  //       {"events": "mouseout",  "update": "{}"}
+  //     ]
+  //   },
+
+  //   ,
+
+  //   {
+  //     "name":"test",
+  //     "update":"tooltip.Name"
+  //   },
+
+    {"name":"BirthLineOpacity",
+    "update":"0.8"},
+
+    {
+      "name": "BirthLines",
+      "value":false,
+      "update": "if(indexof(data('cleandataset')[0].Options, 'BirthLines') >= 0,true,false)"
+      
+    },
+    {
+      "name": "Events",
+      "value":false,
+      "update": "if(indexof(data('cleandataset')[0].Options, 'Events') >= 0,true,false)"
+      
+    },
+
+    // {
+    //   "name": "StandardTooltip",
+    //   //"update": "if(indexof(data('cleandataset')[0].Options, 'Standardtooltip') >= 0,true,false)"
+    //   "update": "true"
+    // },
+
+    {
+      "name": "Spouses",
+      "value":false,
+      "update": "if(indexof(data('cleandataset')[0].Options, 'Spouses') >= 0,true,false)"
+    },
+
+  //   ,
+
+    {
+      "name": "SuccessionLine",
+      "value":false,
+      "update": "if(indexof(data('cleandataset')[0].Options, 'SuccessionLines') >= 0,true,false)"
+    },
+
+    {
+      "name": "DeathMarks",
+      "value":false,
+      "update": "if(indexof(data('cleandataset')[0].Options, 'DeathMarks') >= 0,true,false)"
+    },
+
+    {
+      "name": "ReignHouses",
+      "value":false,
+      "update": "if(indexof(data('cleandataset')[0].Options, 'ReignHouses') >= 0,true,false)"
+    },
+
+    {
+      "name": "ShowTooltips",
+      "value":false,
+      "update": "if(indexof(data('cleandataset')[0].Options, 'Tooltips') >= 0,true,false)"
+    },
+
+  //   ,
+  //   ,
+  //   ,
+  //   {
+  //     "name":"calculatedWidth",
+  //     "update":"pbiContainerWidth"
+  //   },
+  //   ,
+    
+  //   // {
+  //   //   "name": "ColourScheme",
+  //   //   "value":"My style",
+  //   //   "bind": {
+  //   //     "input": "radio",
+  //   //     "options": ["My style","Classic & Royal", "Elegant & Historical", "Regal & Bold","Modern & Minimalist","Subtle & Professional"]
+  //   //   }//,
+  //   //   //"init":  "trim('My style')"
+  //   // },
+  //   // {
+  //   //   "name": "xScroll",
+  //   //   "value": 0,
+  //   //   "bind": {"input": "range", "min": 0, "max": 100}
+  //   // },
+
+    {
+      "name":"MonarchColour",
+      "update": "if(ColourScheme == 'Classic & Royal', '#132740',  if(ColourScheme == 'Elegant & Historical', '#000080',  if(ColourScheme == 'Regal & Bold', '#4B0082',  if(ColourScheme == 'Modern & Minimalist', '#0F52BA',  if(ColourScheme == 'Subtle & Professional', '#4682B4', '#d62728')))))"//#F0A787
+    },
+    {
+      "name":"MonarchScotlandColour",
+      "update": "if(ColourScheme == 'Classic & Royal', '#132740',  if(ColourScheme == 'Elegant & Historical', '#000080',  if(ColourScheme == 'Regal & Bold', '#4B0082',  if(ColourScheme == 'Modern & Minimalist', '#0F52BA',  if(ColourScheme == 'Subtle & Professional', '#4682B4', '#1f77b4')))))"//#F0A787
+    }, 
+    {
+      "name":"EpochColour",
+      "update": "if(ColourScheme == 'Classic & Royal', '#E25E45',  if(ColourScheme == 'Elegant & Historical', '#000080',  if(ColourScheme == 'Regal & Bold', '#4B0082',  if(ColourScheme == 'Modern & Minimalist', '#0F52BA',  if(ColourScheme == 'Subtle & Professional', '#4682B4', 'black')))))"
+    },
+
+    {
+      "name":"SpouseColour",
+      "update": "if(ColourScheme == 'Classic & Royal', '#8BA16E',  if(ColourScheme == 'Elegant & Historical', '#C0C0C0',  if(ColourScheme == 'Regal & Bold', '#FFD700',  if(ColourScheme == 'Modern & Minimalist', '#D4AF37',  if(ColourScheme == 'Subtle & Professional', '#FAEBD7', '#cccccc')))))"
+    },
+
+    {
+      "name":"Spouse2Colour",
+      "update": "if(ColourScheme == 'Classic & Royal', '#8BA16E',  if(ColourScheme == 'Elegant & Historical', '#C0C0C0',  if(ColourScheme == 'Regal & Bold', '#FFD700',  if(ColourScheme == 'Modern & Minimalist', '#D4AF37',  if(ColourScheme == 'Subtle & Professional', '#FAEBD7', '#cccccc')))))"
+    },
+
+    {
+      "name":"Spouse3Colour",
+      "update": "if(ColourScheme == 'Classic & Royal', '#8BA16E',  if(ColourScheme == 'Elegant & Historical', '#C0C0C0',  if(ColourScheme == 'Regal & Bold', '#FFD700',  if(ColourScheme == 'Modern & Minimalist', '#D4AF37',  if(ColourScheme == 'Subtle & Professional', '#FAEBD7', '#cccccc')))))"
+    },
+
+    {
+      "name":"Spouse4Colour",
+      "update": "if(ColourScheme == 'Classic & Royal', '#8BA16E',  if(ColourScheme == 'Elegant & Historical', '#C0C0C0',  if(ColourScheme == 'Regal & Bold', '#FFD700',  if(ColourScheme == 'Modern & Minimalist', '#D4AF37',  if(ColourScheme == 'Subtle & Professional', '#FAEBD7', '#cccccc')))))"
+    },
+
+    {
+      "name":"RegentColour",
+      "update": "if(ColourScheme == 'Classic & Royal', '#677B8A',  if(ColourScheme == 'Elegant & Historical', '#800000',  if(ColourScheme == 'Regal & Bold', '#8B0000',  if(ColourScheme == 'Modern & Minimalist', '#800020',  if(ColourScheme == 'Subtle & Professional', '#556B2F', '#A0D793')))))"
+    },
+
+    
+
+    {
+      "name":"FontColour",
+      "update": "if(ColourScheme == 'Classic & Royal', '#000000',  if(ColourScheme == 'Elegant & Historical', '#000000',  if(ColourScheme == 'Regal & Bold', '#333333',  if(ColourScheme == 'Modern & Minimalist', '#191970',  if(ColourScheme == 'Subtle & Professional', '#333333', '#000000')))))"
+    },
+
+    {
+      "name":"BirthLineColour",
+      "update": "if(ColourScheme == 'Classic & Royal', '#101010',  if(ColourScheme == 'Elegant & Historical', '#000000',  if(ColourScheme == 'Regal & Bold', '#000000',  if(ColourScheme == 'Modern & Minimalist', '#000000',  if(ColourScheme == 'Subtle & Professional', '#000000', '#000000')))))"
+    },
+
+    {
+      "name":"DeathIconColour",
+      "update": "if(ColourScheme == 'Classic & Royal', '#000000',  if(ColourScheme == 'Elegant & Historical', '#000000',  if(ColourScheme == 'Regal & Bold', '#000000',  if(ColourScheme == 'Modern & Minimalist', '#000000',  if(ColourScheme == 'Subtle & Professional', '#000000', '#000000')))))"
+    },
+
+    {
+      "name":"HoverColour",
+      "update": "if(ColourScheme == 'Classic & Royal', '#cecece',  if(ColourScheme == 'Elegant & Historical', '#cecece',  if(ColourScheme == 'Regal & Bold', '#cecece',  if(ColourScheme == 'Modern & Minimalist', '#cecece',  if(ColourScheme == 'Subtle & Professional', '#cecece', '#cecece')))))"
+    },
+
+ 
+
+    {
+      "name":"SpouseBorderColour",
+      "update": "if(ColourScheme == 'Classic & Royal', 'pink',  if(ColourScheme == 'Elegant & Historical', 'pink',  if(ColourScheme == 'Regal & Bold', 'pink',  if(ColourScheme == 'Modern & Minimalist', 'pink',  if(ColourScheme == 'Subtle & Professional', 'pink', '#a8a8a8')))))"
+    },
+
+    {
+      "name":"SpouseBorderWidth",
+      "update": "if(ColourScheme == 'Classic & Royal', 1,  if(ColourScheme == 'Elegant & Historical', 1,  if(ColourScheme == 'Regal & Bold', 1,  if(ColourScheme == 'Modern & Minimalist', 1,  if(ColourScheme == 'Subtle & Professional', 1, 1)))))"
+    },
+
+    {
+      "name":"SpouseBorderDash",
+      "update": "if(ColourScheme == 'Classic & Royal', 1,  if(ColourScheme == 'Elegant & Historical', 1,  if(ColourScheme == 'Regal & Bold', 1,  if(ColourScheme == 'Modern & Minimalist', 1,  if(ColourScheme == 'Subtle & Professional', 1, 0.5)))))"
+    },
+
+    {
+      "name": "TooltipText",
+      "update": "!tooltip || !tooltip.Name ? '' : (tooltip.Name  + if(tooltip.Title!=null,'\\n'+tooltip.Title,'')  + if(tooltip.House!=null,'\\nHouse: ' + tooltip.House,'') + '\\nLife: ' + timeFormat(tooltip.LifeBegin, '%Y') + ' - ' + if(tooltip.LifeEnd == null && tooltip.LifeBegin != null ,'Present',timeFormat(tooltip.LifeEnd, '%Y')) + if(tooltip.LifeEnd == null && tooltip.LifeBegin != null ,'',' (' + tooltip.DeathType + ')') + if(tooltip.RegentBegin != null ,'\\nRegent: ' + timeFormat(tooltip.RegentBegin, '%Y') + ' - ' + timeFormat(tooltip.RegentEnd, '%Y'),'') + if(tooltip.Reign1Begin != null ,'\\nReign: ' + timeFormat(tooltip.Reign1Begin, '%Y') + ' - ' + if(tooltip.Reign1Begin != null && tooltip.Reign1End == null,'Present', timeFormat(tooltip.Reign1End, '%Y')),'') + if(tooltip.Reign2Begin != null ,'\\nReign2: ' + timeFormat(tooltip.Reign2Begin, '%Y') + ' - ' + if(tooltip.Reign2Begin != null && tooltip.Reign2End == null,'Present', timeFormat(tooltip.Reign2End, '%Y')),'')  + if(tooltip.Spouses_1 != null,'\\nSpouse: ' + tooltip.Spouses_1 + ': ' + timeFormat(tooltip.Spouses_1Begin, '%Y') + ' - ' + if(tooltip.Spouses_1Begin != null && tooltip.Spouses_1End == null,'Present', timeFormat(tooltip.Spouses_1End, '%Y')),'') + if(tooltip.Spouses_2 != null,'\\nSpouse2: ' + tooltip.Spouses_2 + ': ' + timeFormat(tooltip.Spouses_2Begin, '%Y') + ' - ' + if(tooltip.Spouses_2Begin != null && tooltip.Spouses_2End == null,'Present', timeFormat(tooltip.Spouses_2End, '%Y')),'') + if(tooltip.Spouses_3 != null,'\\nSpouse3: ' + tooltip.Spouses_3 + ': ' + timeFormat(tooltip.Spouses_3Begin, '%Y') + ' - ' + if(tooltip.Spouses_3Begin != null && tooltip.Spouses_3End == null,'Present', timeFormat(tooltip.Spouses_3End, '%Y')),'') + if(tooltip.Spouses_4 != null,'\\nSpouse4: ' + tooltip.Spouses_4 + ': ' + timeFormat(tooltip.Spouses_4Begin, '%Y') + ' - ' + if(tooltip.Spouses_4Begin != null && tooltip.Spouses_4End == null,'Present', timeFormat(tooltip.Spouses_4End, '%Y')),'') + if(tooltip.Achievements != null, '\\n' + replace(tooltip.Achievements, /\\|/g,'\\n'),''))"
+    },
+    
+  //   ,{
+  //     "name": "fillColor",
+  //     "value":"grey",
+  //     // "update": "datum.Name === selectedName ? 'grey' : PersonFillColour"
+  //     "update": "PersonFillColour"
+  //   }
+
+  // //   ,
+  // //   {
+  // //   "name": "wordWrap",
+  // //   "update": "function(text, maxLength) {return '1' }"
+  // //   //   var words = split(text, ' ');
+  // //   //   var lines = [];
+  // //   //   var currentLine = '';
+  // //   //   for (var i = 0; i < length(words); i++) {
+  // //   //     if (length(currentLine + words[i]) > maxLength) {
+  // //   //       push(lines, currentLine);
+  // //   //       currentLine = words[i];
+  // //   //     } else {
+  // //   //       currentLine = currentLine == '' ? words[i] : currentLine + ' ' + words[i];
+  // //   //     }
+  // //   //   }
+  // //   //   push(lines, currentLine);
+  // //   //   return join(lines, '\\n');
+  // //   // }"
+  // // }
+    {"name":"blanksignal",
+    "value":"blanksignal"}
+    ] ,
+
+
+//==================================================================================
+
+  "scales": [
+   
+
+
+    {
+      "name": "yscale",
+      "type": "band",
+      "range": {
+        "step": {"signal": "bandHeight"}
+      },
+      "domain": {
+        "data": "cleandataset",
+        "field": "Name"
+        ,"sort": {
+          "field": "GUID",
+          "op": "max",
+          "order": "ascending"
+        }
+      }
+    },
+
+
+
+
+
+    
+    {
+      "name": "MonarchCountry",
+      "type": "ordinal",
+      "range": [
+       "#d62728",
+       "#e6550d",
+       "#1f77b4",
+       "#2ca02c",
+       "#9467bd",
+       "#6a3d9a",
+       "#ffbf00"
+       
+      ],
+      "domain": [
+        "England",
+        "England and Ireland",
+        "Scotland",
+        "Ireland",
+        "England, Scotland and Ireland",
+        "Great Britain and Ireland",
+        "the United Kingdom"
+    
+        
+      ]
+    },
+    {
+      "name": "EventsSentiment",
+      "type": "ordinal",
+      "range": [
+       "#C6EFCE",
+       "#FFEB9C",
+       "#FFC7CE"
+       
+      ],
+      "domain": [
+        "Positive",
+        "Neutral",
+        "Negative"  
+      ]
+    },
+    {
+      "name": "MonarchCountrySuccessionOffset",
+      "type": "ordinal",
+      "range": [
+       0,
+       0,
+       1,
+       -1,
+       0,
+       0
+      ],
+      "domain": [
+        "England",
+        "England and Ireland",
+        "Scotland",
+        "Ireland",
+        "England, Scotland and Ireland",
+        "Great Britain and Ireland",
+        "the United Kingdom"
+      ]
+    },
+
+    {
+      "name": "PersonTypeColour",
+      "type": "ordinal",
+      "range": [
+        {"signal": "MonarchColour"},
+        {"signal": "MonarchScotlandColour"},
+        {"signal": "SpouseColour"},
+        {"signal": "Spouse2Colour"},
+        {"signal": "Spouse3Colour"},
+        {"signal": "Spouse4Colour"},
+        {"signal": "RegentColour"},
+        {"signal": "BackgroundColour"},
+        {"signal": "FontColour"},
+        {"signal": "BirthLineColour"},
+        {"signal": "DeathIconColour"}
+      ],
+      "domain": [
+        "Monarch",
+        "MonarchScotland",
+        "Spouse",
+        "Spouse2",
+        "Spouse3",
+        "Spouse4",
+        "Regent",
+        "Background",
+        "Font",
+        "BirthLine",
+        "DeathIcon"
+      ]
+    },
+    {
+      "name": "house",
+      "type": "ordinal",
+      "range": [
+        "#A41C1C",//1
+        "#4169E1",//2
+        "#FFD701",//3
+        "#228B22",//4
+        "#DC143C",//5
+        "#800080",//6
+        "#800020",//7
+        "#708090",//8
+        "#4682B4",//9
+        "#FF2400",//10
+        "#8B4513",//11
+        "#C0C0C0",//12
+        "#406328",//13
+        "#FFA500",//14
+        "#EBBE5F",//15
+        "#bbbbbb",//16
+
+        "#ffffff"//17
+
+      ],
+      "domain": [
+        "Plantagenet",//1
+        "Windsor",//2
+        "Stuart",//3
+        "Tudor",//4
+        "Hanover",//5
+        "Wessex",//6
+        "Plantagenet–Angevin",//7
+        "Norman",//8
+        "Knýtlinga",//9
+        "Lancaster",//10
+        "Godwin",//11
+        "Blois",//12
+        "Saxe-Coburg and Gotha",//13
+        "Orange",//14
+        "York",//15
+        "Orange-Nassau",//16
+
+        "null"//17
+
+      ]
+    },
+    {
+      "name": "death",
+      "type": "ordinal",
+      "range":[
+        //Self
+        "M 1 1 L 1 -1 L -1 -1 L -1 1 L 1 1",
+      
+        //Poisoned
+        "M 1 1 L 1 -1 L -1 -1 L -1 1 L 1 1",
+        //Executed
+        "M -2 1 L -7 10 L -9 10 L -9 8 L -4 -2 L -2 -1 M -6 -6 L -4 -10 L -2 -8.8 L -4 -5 L -6 -6 M -1 -9 L 3 -6 L -0.7 -1 L -4 -3 L -1 -9 M 3.3 -5.5 L 7 -2 L 1.8 3 L 0.4 -1.1 L 3.3 -5.5 M 8 -2.5 L 10 -1.3 L 3 8 L 2 4 L 8 -2.5 Z ",
+        //Killed
+        "M -6 4.3 L -4.8 5.7 L -7 8 Q -9.2 9.2 -7.5 9.1 Q -9.7 7.2 -8 6.2 L -6 4.3 M -2 4 L -1.5 5.5 L 0 6.6 L -1.8 8.1 L -8 0.2 L -6.2 0.7 L -5.5 1 L -4 1.3 L 8 -8 L 9.5 -9.5 L 8.1 -5.8 L -2 4",
+        //Missing
+        "M -1.4 6.6 L 1.4 6.6 L 1.4 9.4 L -1.4 9.4 L -1.4 6.6    M 1.4 4.4 L -1.4 4.4 Q -0.5 1 1.4 -1  Q 2.8 -2.2 3.2 -4 Q 2.2 -6.1 0 -7 Q -2 -6.4 -3.2 -3.8 L -6.2 -3.8 Q -4 -8.5 0 -10 Q 4.6 -7.5 6 -4 Q 5.5 -1.5 3.4 1.4   Q 1 2.5 1.4 4.4",
+        //Illness
+        "M 2 2 L 10 2 L 10 -2 L 2 -2 L 2 -10 L -2 -10 L -2 -2 L -10 -2 L -10 2 L -2 2 L -2 10 L 2 10 L 2 2 Z",
+        //n/a
+        " "
+
+      ],
+      "domain":[
+        "Self",
+        "Poisoned",
+        "Execution",
+        "Killed",
+        "Missing",
+        "Illness",
+        "n/a"
+      ]
+    },
+
+    {
+      "name": "xscale",
+      "type": "time",
+      "range": [0, {"signal": "pbiContainerWidth"}],
+       "domain":{"signal":"DomainYears"}
+    }
+  ],
+
+
+//==================================================================================
+
+  "axes": [
+    {
+      "orient": "bottom", 
+      "scale": "xscale",
+      "grid":true,
+      "tickCount": {"signal": "ceil(width / 100)"}
+    },
+    { 
+      "orient": "left", 
+      "scale": "yscale",
+      "labels":false,
+      "ticks": false,
+      "domainColor":"white" 
+    }
+  ],
+
+
+//==================================================================================
+  "marks": [
+
+
+    
+    {
+      "type": "rule",
+      "clip": {"signal": "(FitYears)"},
+      "name": "recteventsfirstyeaer",
+      "from": {"data":"dataevents"},
+      "encode": {
+        "update": {
+          "x": {"scale": "xscale", "field": "LifeBegin", "offset":0},
+          "x2":{"scale": "xscale", "field": "LifeBegin", "offset":0},
+          "y": {"value":2},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [1,0]},
+          "strokeWidth":{"value":2},
+          "stroke": {"scale":"EventsSentiment","field":"House"},
+          "strokeOpacity": {"value":1}
+        }
+      }
+    },
+    {
+      "type":"rect",
+      "clip": {"signal": "FitYears"},
+      "name":"rectevents",
+      "from": {"data":"dataevents"},
+      "encode": {
+  
+        "update": {
+          "x": {"scale": "xscale", "field": "LifeBegin"},
+          "x2":{"scale": "xscale", "field": "LifeEnd"},
+          "y": {"scale": "yscale", "value": 2},
+          "height":{"signal": "height"},
+          "fill":{"scale":"EventsSentiment","field":"House"},
+          "opacity":{"value": 0.6}//,
+          ,"tooltip":{"signal":"ShowTooltips ? datum.Name + '\\n' + datum.Achievements : null"}
+          ,"href": {"signal": "showlinkurl && datum.Link"}
+          ,"cursor": {"signal": "showlinkurl && datum.Link != null ? 'pointer' : 'default'"}
+        }
+      }
+    },
+    
+
+
+    {
+      "type": "rule",
+      "clip": {"signal": "!(FitYears)"},
+      "name": "Maxyear",
+      "encode": {
+        "update": {
+          "x": {"scale": "xscale", "signal": "maxyear", "offset":0},
+          "x2":{"scale": "xscale", "signal": "maxyear", "offset":0},
+          "y": {"value":0},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [5]},
+          "strokeWidth":{"value":1},
+          "stroke": {"value": "black"},
+          "opacity": {"value":0.3}
+        }
+      }
+    },
+    {
+      "type": "rule",
+      "clip": {"signal": "!(FitYears)"},
+      "name": "Minyear",
+      "encode": {
+        "update": {
+          "x": {"scale": "xscale", "signal": "minyear", "offset":0},
+          "x2":{"scale": "xscale", "signal": "minyear", "offset":0},
+          "y": {"value":0},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [5]},
+          "strokeWidth":{"value":1},
+          "stroke": {"value": "black"},
+          "opacity": {"value":0.3}
+        }
+      }
+    },
+
+    {
+      "type":"rect",
+      "clip": {"signal": "FitYears"},
+      "name":"Reign1HouseShadow",
+      "from": {"data":"Reign1HouseShadows"},
+      "encode": {
+  
+        "update": {
+          "x": {"scale": "xscale", "field": "Reign1Begin"},
+          "x2":{"scale": "xscale", "field": "Reign1End2"},
+          "y": {"scale": "yscale", "value": 0},
+          "height":{"signal": "height"},
+          //"y2":{"scale": "yscale", "field": "Spouses_1","offset":{"signal": "bandHeight/2"}},
+          
+          "fill":{"scale":"house","field":"House"},
+          "opacity":{"value": 0.6}//,
+          //"opacity": {"signal": "tooltip.Name && tooltip.Spouses_1End2?0.8:0"}
+          
+        }
+      }
+    },
+    {
+      "type":"rect",
+      "clip": {"signal": "FitYears"},
+      "name":"Reign2HouseShadow",
+      "from": {"data":"Reign2HouseShadows"},
+      "encode": {
+  
+        "update": {
+          "x": {"scale": "xscale", "field": "Reign2Begin"},
+          "x2":{"scale": "xscale", "field": "Reign2End"},
+          "y": {"scale": "yscale", "value": 0},
+          "height":{"signal": "height"},
+          //"y2":{"scale": "yscale", "field": "Spouses_1","offset":{"signal": "bandHeight/2"}},
+          
+          "fill":{"scale":"house","field":"House"},
+          "opacity":{"value": 0.6}//,
+          //"opacity": {"signal": "tooltip.Name && tooltip.Spouses_1End2?0.8:0"}
+          
+        }
+      }
+    },
+     {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "TooltipBirthLine",
+      "encode": {
+        "enter": {
+          "stroke": {"value": "black"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.LifeBegin", "offset":0},
+          "x2":{"scale": "xscale", "signal": "tooltip.LifeBegin", "offset":0},
+          "y": {"scale": "yscale", "signal": "tooltip.Name", "offset": {"signal":"TotalOffset + bandHeight/2"}},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [6]},
+          "stroke": {"value": "black"},
+          "opacity": {"signal": "tooltip.Name?0.8:0"}
+        }
+      }
+    },
+     {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "TooltipDeathLine",
+      "encode": {
+        "enter": {
+          "stroke": {"value": "black"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.LifeEnd2", "offset":0},
+          "x2":{"scale": "xscale", "signal": "tooltip.LifeEnd2", "offset":0},
+          "y": {"scale": "yscale", "signal": "tooltip.Name", "offset": {"signal":"TotalOffset + bandHeight/2"}},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [6]},
+          "stroke": {"value": "black"},
+          "opacity": {"signal": "tooltip.Name?0.8:0"}
+        }
+      }
+    },
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "TooltipReignBeginLine",
+      "encode": {
+        "enter": {
+          "stroke": {"value": "black"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Reign1Begin", "offset":0},
+          "x2":{"scale": "xscale", "signal": "tooltip.Reign1Begin", "offset":0},
+          "y": {"scale": "yscale", "signal": "tooltip.Name", "offset": {"signal":"TotalOffset + bandHeight/2"}},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [6]},
+          "stroke": {"value": "black"},
+          "opacity": {"signal": "tooltip.Name && tooltip.Reign1Begin?0.8:0"}
+        }
+      }
+    },
+     {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "TooltipReignEndLine",
+      "encode": {
+        "enter": {
+          "stroke": {"value": "black"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Reign1End2", "offset":0},
+          "x2":{"scale": "xscale", "signal": "tooltip.Reign1End2", "offset":0},
+          "y": {"scale": "yscale", "signal": "tooltip.Name", "offset": {"signal":"TotalOffset + bandHeight/2"}},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [6]},
+          "stroke": {"value": "black"},
+          "opacity": {"signal": "tooltip.Name && tooltip.Reign1End2?0.8:0"}
+        }
+      }
+    },
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "TooltipReign2BeginLine",
+      "encode": {
+        "enter": {
+          "stroke": {"value": "black"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Reign2Begin", "offset":0},
+          "x2":{"scale": "xscale", "signal": "tooltip.Reign2Begin", "offset":0},
+          "y": {"scale": "yscale", "signal": "tooltip.Name", "offset": {"signal":"TotalOffset + bandHeight/2"}},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [6]},
+          "stroke": {"value": "black"},
+          "opacity": {"signal": "tooltip.Name && tooltip.Reign2Begin?0.8:0"}
+        }
+      }
+    },
+     {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "TooltipReign2EndLine",
+      "encode": {
+        "enter": {
+          "stroke": {"value": "black"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Reign2End", "offset":0},
+          "x2":{"scale": "xscale", "signal": "tooltip.Reign2End", "offset":0},
+          "y": {"scale": "yscale", "signal": "tooltip.Name", "offset": {"signal":"TotalOffset + bandHeight/2"}},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [6]},
+          "stroke": {"value": "black"},
+          "opacity": {"signal": "tooltip.Name && tooltip.Reign2End?0.8:0"}
+        }
+      }
+    },
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "TooltipRegentBeginLine",
+      "encode": {
+        "enter": {
+          "stroke": {"value": "black"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.RegentBegin", "offset":0},
+          "x2":{"scale": "xscale", "signal": "tooltip.RegentBegin", "offset":0},
+          "y": {"scale": "yscale", "signal": "tooltip.Name", "offset": {"signal":"TotalOffset + bandHeight/2"}},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [6]},
+          "stroke": {"value": "black"},
+          "opacity": {"signal": "tooltip.Name && tooltip.RegentBegin?0.8:0"}
+        }
+      }
+    },
+     {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "TooltipRegentEndLine",
+      "encode": {
+        "enter": {
+          "stroke": {"value": "black"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.RegentEnd", "offset":0},
+          "x2":{"scale": "xscale", "signal": "tooltip.RegentEnd", "offset":0},
+          "y": {"scale": "yscale", "signal": "tooltip.Name", "offset": {"signal":"TotalOffset + bandHeight/2"}},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [6]},
+          "stroke": {"value": "black"},
+          "opacity": {"signal": "tooltip.Name && tooltip.RegentEnd?0.8:0"}
+        }
+      }
+    },
+     {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "TooltipSpouses_1BeginLine",
+      "encode": {
+        "enter": {
+         "stroke": {"value": "black"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Spouses_1Begin", "offset":0},
+          "x2":{"scale": "xscale", "signal": "tooltip.Spouses_1Begin", "offset":0},
+          "y": {"scale": "yscale", "signal": "tooltip.Name", "offset": {"signal":"TotalOffset + bandHeight/2"}},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [6]},
+          "stroke": {"value": "black"},
+          "opacity": {"signal": "tooltip.Name && tooltip.Spouses_1Begin?0.8:0"}
+        }
+      }
+    },
+     {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "TooltipSpouses_1End2Line",
+      "encode": {
+        "enter": {
+          "stroke": {"value": "black"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Spouses_1End2", "offset":0},
+          "x2":{"scale": "xscale", "signal": "tooltip.Spouses_1End2", "offset":0},
+          "y": {"scale": "yscale", "signal": "tooltip.Name", "offset": {"signal":"TotalOffset + bandHeight/2"}},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [6]},
+          "stroke": {"value": "black"},
+          "opacity": {"signal": "tooltip.Name && tooltip.Spouses_1End2?0.8:0"}
+          
+        }
+      }
+    },
+     {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "TooltipSpouses_2BeginLine",
+      "encode": {
+        "enter": {
+         "stroke": {"value": "black"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Spouses_2Begin", "offset":0},
+          "x2":{"scale": "xscale", "signal": "tooltip.Spouses_2Begin", "offset":0},
+          "y": {"scale": "yscale", "signal": "tooltip.Name", "offset": {"signal":"TotalOffset + bandHeight/2"}},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [6]},
+          "stroke": {"value": "black"},
+          "opacity": {"signal": "tooltip.Name && tooltip.Spouses_2Begin?0.8:0"}
+        }
+      }
+    },
+     {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "TooltipSpouses_2EndLine",
+      "encode": {
+        "enter": {
+          "stroke": {"value": "black"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Spouses_2End2", "offset":0},
+          "x2":{"scale": "xscale", "signal": "tooltip.Spouses_2End2", "offset":0},
+          "y": {"scale": "yscale", "signal": "tooltip.Name", "offset": {"signal":"TotalOffset + bandHeight/2"}},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [6]},
+          "stroke": {"value": "black"},
+          "opacity": {"signal": "tooltip.Name && tooltip.Spouses_2End2?0.8:0"}
+          
+        }
+      }
+    },
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "TooltipSpouses_3BeginLine",
+      "encode": {
+        "enter": {
+         "stroke": {"value": "black"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Spouses_3Begin", "offset":0},
+          "x2":{"scale": "xscale", "signal": "tooltip.Spouses_3Begin", "offset":0},
+          "y": {"scale": "yscale", "signal": "tooltip.Name", "offset": {"signal":"TotalOffset + bandHeight/2"}},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [6]},
+          "stroke": {"value": "black"},
+          "opacity": {"signal": "tooltip.Name && tooltip.Spouses_3Begin?0.8:0"}
+        }
+      }
+    },
+     {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "TooltipSpouses_3EndLine",
+      "encode": {
+        "enter": {
+          "stroke": {"value": "black"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Spouses_3End2", "offset":0},
+          "x2":{"scale": "xscale", "signal": "tooltip.Spouses_3End2", "offset":0},
+          "y": {"scale": "yscale", "signal": "tooltip.Name", "offset": {"signal":"TotalOffset + bandHeight/2"}},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [6]},
+          "stroke": {"value": "black"},
+          "opacity": {"signal": "tooltip.Name && tooltip.Spouses_3End2?0.8:0"}
+          
+        }
+      }
+    },
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "TooltipSpouses_4BeginLine",
+      "encode": {
+        "enter": {
+         "stroke": {"value": "black"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Spouses_4Begin", "offset":0},
+          "x2":{"scale": "xscale", "signal": "tooltip.Spouses_4Begin", "offset":0},
+          "y": {"scale": "yscale", "signal": "tooltip.Name", "offset": {"signal":"TotalOffset + bandHeight/2"}},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [6]},
+          "stroke": {"value": "black"},
+          "opacity": {"signal": "tooltip.Name && tooltip.Spouses_4Begin?0.8:0"}
+        }
+      }
+    },
+     {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "TooltipSpouses_4EndLine",
+      "encode": {
+        "enter": {
+          "stroke": {"value": "black"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Spouses_4End2", "offset":0},
+          "x2":{"scale": "xscale", "signal": "tooltip.Spouses_4End2", "offset":0},
+          "y": {"scale": "yscale", "signal": "tooltip.Name", "offset": {"signal":"TotalOffset + bandHeight/2"}},
+          "y2":{"signal": "height"},
+          "strokeDash":{"value": [6]},
+          "stroke": {"value": "black"},
+          "opacity": {"signal": "tooltip.Name && tooltip.Spouses_4End2?0.8:0"}
+          
+        }
+      }
+    },
+    {
+      "type": "text",
+      "clip": {"signal": "FitYears"},
+      "name": "tooltipLifeBegin",
+      "encode": {
+        "enter": {
+          "fill": {"value": "#000000"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.LifeBegin"/*"signal":"datum['Life Begin']"*/, "offset":-30},
+          "y": {"signal":"height","offset":-5},
+          "text": {"signal": "tooltip.LifeBegin!=null?timeFormat(tooltip.LifeBegin, '%Y'):''"} ,
+          "fillOpacity": [
+            {"test": "datum === tooltip", "value": 0},
+            {"value": 1}
+          ]
+        }
+      }
+    },
+    {
+      "type": "text",
+      "clip": {"signal": "FitYears"},
+      "name": "tooltipLifeEnd2",
+      "encode": {
+        "enter": {
+          "fill": {"value": "#000000"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.LifeEnd"/*"signal":"datum['Life Begin']"*/, "offset":5},
+          "y": {"signal":"height","offset":-5},
+          "text": {"signal": "tooltip.LifeEnd2!=null?timeFormat(tooltip.LifeEnd2, '%Y'):''"} ,
+          "fillOpacity": [
+            {"test": "datum === tooltip", "value": 0},
+            {"value": 1}
+          ]
+        }
+      }
+    },
+    {
+      "type": "text",
+      "clip": {"signal": "FitYears"},
+      "name": "tooltipReign1Begin",
+      "encode": {
+        "enter": {
+          "fill": {"value": "#000000"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Reign1Begin"/*"signal":"datum['Life Begin']"*/, "offset":-30},
+          "y": {"signal":"height","offset":-25},
+          "text": {"signal": "tooltip.Reign1Begin!=null?timeFormat(tooltip.Reign1Begin, '%Y'):''"} ,
+          "fillOpacity": [
+            {"test": "datum === tooltip", "value": 0},
+            {"value": 1}
+          ]
+        }
+      }
+    },
+    {
+      "type": "text",
+      "clip": {"signal": "FitYears"},
+      "name": "tooltipReign1End",
+      "encode": {
+        "enter": {
+          "fill": {"value": "#000000"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Reign1End2"/*"signal":"datum['Life Begin']"*/, "offset":5},
+          "y": {"signal":"height","offset":-25},
+          "text": {"signal": "tooltip.Reign1End2!=null?timeFormat(tooltip.Reign1End2, '%Y'):''"} ,
+          "fillOpacity": [
+            {"test": "datum === tooltip", "value": 0},
+            {"value": 1}
+          ]
+        }
+      }
+    },
+    {
+      "type": "text",
+      "clip": {"signal": "FitYears"},
+      "name": "tooltipSpouses_1Begin",
+      "encode": {
+        "enter": {
+          "fill": {"value": "#000000"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Spouses_1Begin"/*"signal":"datum['Life Begin']"*/, "offset":-30},
+          "y": {"signal":"height","offset":-5},
+          "text": {"signal": "tooltip.Spouses_1Begin!=null?timeFormat(tooltip.Spouses_1Begin, '%Y'):''"} ,
+          "fillOpacity": [
+            {"test": "datum === tooltip", "value": 0},
+            {"value": 1}
+          ]
+        }
+      }
+    },
+    {
+      "type": "text",
+      "clip": {"signal": "FitYears"},
+      "name": "tooltipSpouses_1End2",
+      "encode": {
+        "enter": {
+          "fill": {"value": "#000000"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Spouses_1End2"/*"signal":"datum['Life Begin']"*/, "offset":5},
+          "y": {"signal":"height","offset":-20},
+          "text": {"signal": "tooltip.Spouses_1End2!=null?timeFormat(tooltip.Spouses_1End2, '%Y'):''"} ,
+          "fillOpacity": [
+            {"test": "datum === tooltip", "value": 0},
+            {"value": 1}
+          ]
+        }
+      }
+    },
+    {
+      "type": "text",
+      "clip": {"signal": "FitYears"},
+      "name": "tooltipSpouses_2Begin",
+      "encode": {
+        "enter": {
+          "fill": {"value": "#000000"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Spouses_2Begin"/*"signal":"datum['Life Begin']"*/, "offset":-30},
+          "y": {"signal":"height","offset":-5},
+          "text": {"signal": "tooltip.Spouses_2Begin!=null?timeFormat(tooltip.Spouses_2Begin, '%Y'):''"} ,
+          "fillOpacity": [
+            {"test": "datum === tooltip", "value": 0},
+            {"value": 1}
+          ]
+        }
+      }
+    },
+    {
+      "type": "text",
+      "clip": {"signal": "FitYears"},
+      "name": "tooltipSpouses_2End",
+      "encode": {
+        "enter": {
+          "fill": {"value": "#000000"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Spouses_2End"/*"signal":"datum['Life Begin']"*/, "offset":5},
+          "y": {"signal":"height","offset":-20},
+          "text": {"signal": "tooltip.Spouses_2End!=null?timeFormat(tooltip.Spouses_2End, '%Y'):''"} ,
+          "fillOpacity": [
+            {"test": "datum === tooltip", "value": 0},
+            {"value": 1}
+          ]
+        }
+      }
+    },
+    {
+      "type": "text",
+      "clip": {"signal": "FitYears"},
+      "name": "tooltipSpouses_3Begin",
+      "encode": {
+        "enter": {
+          "fill": {"value": "#000000"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Spouses_3Begin"/*"signal":"datum['Life Begin']"*/, "offset":-30},
+          "y": {"signal":"height","offset":-5},
+          "text": {"signal": "tooltip.Spouses_3Begin!=null?timeFormat(tooltip.Spouses_3Begin, '%Y'):''"} ,
+          "fillOpacity": [
+            {"test": "datum === tooltip", "value": 0},
+            {"value": 1}
+          ]
+        }
+      }
+    },
+    {
+      "type": "text",
+      "clip": {"signal": "FitYears"},
+      "name": "tooltipSpouses_3End",
+      "encode": {
+        "enter": {
+          "fill": {"value": "#000000"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.Spouses_3End"/*"signal":"datum['Life Begin']"*/, "offset":5},
+          "y": {"signal":"height","offset":-50},
+          "text": {"signal": "tooltip.Spouses_3End!=null?timeFormat(tooltip.Spouses_3End, '%Y'):''"} ,
+          "fillOpacity": [
+            {"test": "datum === tooltip", "value": 0},
+            {"value": 1}
+          ]
+        }
+      }
+    },
+
+    {
+      "type": "text",
+      "clip": {"signal": "FitYears"},
+      "name": "tooltipRegentBegin",
+      "encode": {
+        "enter": {
+          "fill": {"value": "#000000"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.RegentBegin"/*"signal":"datum['Life Begin']"*/, "offset":-30},
+          "y": {"signal":"height","offset":-5},
+          "text": {"signal": "tooltip.RegentBegin!=null?timeFormat(tooltip.RegentBegin, '%Y'):''"} ,
+          "fillOpacity": [
+            {"test": "datum === tooltip", "value": 0},
+            {"value": 1}
+          ]
+        }
+      }
+    },
+    {
+      "type": "text",
+      "clip": {"signal": "FitYears"},
+      "name": "tooltipRegentEnd",
+      "encode": {
+        "enter": {
+          "fill": {"value": "#000000"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip.RegentEnd"/*"signal":"datum['Life Begin']"*/, "offset":5},
+          "y": {"signal":"height","offset":-5},
+          "text": {"signal": "tooltip.RegentEnd!=null?timeFormat(tooltip.RegentEnd, '%Y'):''"} ,
+          "fillOpacity": [
+            {"test": "datum === tooltip", "value": 0},
+            {"value": 1}
+          ]
+        }
+      }
+    },
+    
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "CussessionLine11",
+      "from": {"data":"Successors"},
+      "encode": {
+        "update": {
+          "x": {"scale": "xscale", "signal": "datum.Reign1End2", "offset":{"scale":"MonarchCountrySuccessionOffset","field":"Country of Title"}},
+          "x2":{"scale": "xscale", "signal": "datum.Reign1End2", "offset":{"scale":"MonarchCountrySuccessionOffset","field":"Country of Title"}},
+          "y": {"scale": "yscale", "signal": "datum.Name", "offset": {"signal":"TotalOffset + bandHeight*.23"}},
+          "y2":{"scale": "yscale", "signal": "datum.Successor", "offset": {"signal":"TotalOffset + bandHeight*(1-0.23)"}},
+          "stroke":{"scale": "MonarchCountry",
+            "field": "Country of Title"},
+          "strokeWidth":{"value":1},
+          "strokeOpacity": {"value": 1}
+        }
+      }
+    },
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "CussessionLine12",
+      "from": {"data":"Successors12"},
+      "encode": {
+        "update": {
+          "x": {"scale": "xscale", "signal": "datum['Reign1End2']", "offset":{"scale":"MonarchCountrySuccessionOffset","field":"Country of Title"}},
+          "x2":{"scale": "xscale", "signal": "datum['Reign1End2']", "offset":{"scale":"MonarchCountrySuccessionOffset","field":"Country of Title"}},
+          "y": {"scale": "yscale", "signal": "datum['Name']", "offset": {"signal":"TotalOffset + bandHeight*.23"}},
+          "y2":{"scale": "yscale", "signal": "datum['Successor12']", "offset": {"signal":"TotalOffset + bandHeight*(1-0.23)"}},
+          "stroke":{"scale": "MonarchCountry",
+            "field": "Country of Title"},
+          "strokeWidth":{"value":1},
+          "strokeOpacity": {"value": 1}
+        }
+      }
+    },
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "CussessionLine21",
+      "from": {"data":"Successors2"},
+      "encode": {
+        "update": {
+          "x": {"scale": "xscale", "signal": "datum['Reign2End']", "offset":{"scale":"MonarchCountrySuccessionOffset","field":"Country of Title"}},
+          "x2":{"scale": "xscale", "signal": "datum['Reign2End']", "offset":{"scale":"MonarchCountrySuccessionOffset","field":"Country of Title"}},
+          "y": {"scale": "yscale", "signal": "datum['Name']", "offset": {"signal":"TotalOffset + bandHeight*.23"}},
+          "y2":{"scale": "yscale", "signal": "datum.Successor2", "offset": {"signal":"TotalOffset + bandHeight*(1-0.23)"}},
+          "stroke":{"scale": "MonarchCountry",
+            "field": "Country of Title"},
+          "strokeWidth":{"value":1},
+          "strokeOpacity": {"value": 1}
+        }
+      }
+    },
+
+    /*rect Spouse to Spouse*/
+    {
+      "type":"rect",
+      "clip": {"signal": "FitYears"},
+      "name":"spouse1_ruleToSpouse",
+      "from": {"data":"Spouses1Shadow"},
+      "encode": {
+  
+        "update": {
+          "x": {"scale": "xscale", "field": "Spouses_1Begin"},
+          "x2":{"scale": "xscale", "field": "Spouses_1End2"},
+          "y": {"scale": "yscale", "field": "Name","offset":{"signal": "TotalOffset + bandHeight/2"}},
+          "height":{"signal": "-scale('yscale', datum.Name) + scale('yscale', datum['Spouses_1'])"},
+          //"y2":{"scale": "yscale", "field": "Spouses_1","offset":{"signal": "bandHeight/2"}},
+          
+          "fill":{"scale":"PersonTypeColour","value":"Spouse"},
+          "opacity":{"signal": "Spouses?0.5:0"}//,
+          //"opacity": {"signal": "tooltip.Name && tooltip.Spouses_1End2?0.8:0"}
+          
+        }
+      }
+    },
+    
+    {
+      "type":"rect",
+      "clip": {"signal": "FitYears"},
+      "name":"spouse2_ruleToSpouse",
+      "from": {"data":"Spouses2Shadow"},
+      "encode": {
+  
+        "update": {
+          "x": {"scale": "xscale", "field": "Spouses_2Begin"},
+          "x2":{"scale": "xscale", "field": "Spouses_2End2"},
+          "y": {"scale": "yscale", "field": "Name","offset":{"signal": "TotalOffset + bandHeight/2"}},
+          "height":{"signal": "-scale('yscale', datum.Name) + scale('yscale', datum['Spouses_2'])"},
+          //"y2":{"scale": "yscale", "field": "Spouses_1","offset":{"signal": "bandHeight/2"}},
+          
+          "fill":{"scale":"PersonTypeColour","value":"Spouse"},
+          "opacity":{"signal": "Spouses?0.5:0"}//,
+          //"opacity": {"signal": "tooltip.Name && tooltip.Spouses_1End2?0.8:0"}
+          
+        }
+      }
+    },
+   
+   {
+      "type":"rect",
+      "clip": {"signal": "FitYears"},
+      "name":"spouse3_ruleToSpouse",
+      "from": {"data":"Spouses3Shadow"},
+      "encode": {
+  
+        "update": {
+          "x": {"scale": "xscale", "field": "Spouses_3Begin"},
+          "x2":{"scale": "xscale", "field": "Spouses_3End2"},
+          "y": {"scale": "yscale", "field": "Name","offset":{"signal": "TotalOffset + bandHeight/2"}},
+          "height":{"signal": "-scale('yscale', datum.Name) + scale('yscale', datum['Spouses_3'])"},
+          //"y2":{"scale": "yscale", "field": "Spouses_1","offset":{"signal": "bandHeight/2"}},
+          
+          "fill":{"scale":"PersonTypeColour","value":"Spouse"},
+          "opacity":{"signal": "Spouses?0.5:0"}//,
+          //"opacity": {"signal": "tooltip.Name && tooltip.Spouses_1End2?0.8:0"}
+          
+        }
+      }
+    },
+
+    {
+      "type":"rect",
+      "clip": {"signal": "FitYears"},
+      "name":"spouse4_ruleToSpouse",
+      "from": {"data":"Spouses4Shadow"},
+      "encode": {
+  
+        "update": {
+          "x": {"scale": "xscale", "field": "Spouses_4Begin"},
+          "x2":{"scale": "xscale", "field": "Spouses_4End2"},
+          "y": {"scale": "yscale", "field": "Name","offset":{"signal": "TotalOffset + bandHeight/2"}},
+          "height":{"signal": "-scale('yscale', datum.Name) + scale('yscale', datum['Spouses_4'])"},
+          //"y2":{"scale": "yscale", "field": "Spouses_1","offset":{"signal": "bandHeight/2"}},
+          
+          "fill":{"scale":"PersonTypeColour","value":"Spouse"},
+          "opacity":{"signal": "Spouses?0.5:0"}//,
+          //"opacity": {"signal": "tooltip.Name && tooltip.Spouses_1End2?0.8:0"}
+          
+        }
+      }
+    },
+
+
+
+
+    {
+      "type": "rect",
+      "clip": {"signal": "FitYears"},
+      "name": "person",
+      "from": {"data": "persons"},
+      "encode": {
+        "update": {
+          "x": {
+            "scale": "xscale",
+            "field": "LifeBegin",
+            "offset": 0
+            //,"timeUnit": "year"
+          },
+          "x2": {
+            "scale": "xscale",
+            "field": "LifeEnd2"
+            //,"timeUnit": "year"
+          },
+          "y": {
+            "scale": "yscale",
+            "field": "Name",
+            "offset":{"signal": "TotalOffset + (bandHeight-stepGap)/2"}
+          },
+          "height": {
+            "signal": "stepGap"
+          },
+          "fill": {
+            // "signal": "fillColor"
+            // "signal": "PersonFillColour"
+
+            "signal": "datum.Name === selectedName ? 'grey' : PersonFillColour"
+          },
+          "stroke": { "value": "black" },
+          "strokeWidth": {"value": 1},
+          "opacity": {"value": 1}
+          ,"tooltip": {"signal":"ShowTooltips ? TooltipText : null"}
+          ,"href": {"signal": "showlinkurl && datum.Link"}
+          ,"cursor": {"signal": "showlinkurl && datum.Link != null ? 'pointer' : 'default'"}
+          
+        }
+        // ,"hover":{
+        //   // "fill": {
+        //   //  "signal":"HoverColour"
+        //   // }
+        //   "stroke": { "value": "black" },
+        //   "strokeWidth": {"value": 2}
+        //   //,"tooltip": {"signal":"ShowTooltips ? TooltipText : null"}
+        // }
+
+      }
+    }
+
+
+    ,
+    
+    {
+      "type": "rect",
+      "clip": {"signal": "FitYears"},
+      "name": "EpochPerson",
+      "from": {"data": "Epoch"},
+      "encode": {
+        "update": {
+          "x": {
+            "scale": "xscale",
+            "field": "LifeBegin",
+            "offset": 0
+            //,"timeUnit": "year"
+          },
+          "x2": {
+            "scale": "xscale",
+            "field": "LifeEnd2"
+            //,"timeUnit": "year"
+          },
+          "y": {
+            "scale": "yscale",
+            "field": "Name",
+            "offset":{"signal": "TotalOffset + (bandHeight-stepGap)/2"}
+          },
+          "height": {
+            "signal": "stepGap"
+          },
+          "fill": {
+            //"scale": "house",
+            //"field": "House"
+            //"value": "Life"
+            "signal": "PersonFillColour"
+          },
+          "stroke": {"signal": "EpochColour"},
+          "strokeWidth":{"value":3},
+          "opacity": {"value": 1}
+          ,"tooltip": {"signal":"ShowTooltips ? TooltipText : null"}
+          ,"href": {"signal": "showlinkurl && datum.Link"}
+          ,"cursor": {"signal": "showlinkurl && datum.Link != null ? 'pointer' : 'default'"}
+        }
+      }
+    },
+
+
+    
+    {
+      "type": "rect",
+      "clip": {"signal": "FitYears"},
+      "name": "spouse1",
+      "from": {"data": "Spouses1"},
+      
+      "encode": {
+        "update": {
+          "x": { "scale": "xscale", "field": "Spouses_1Begin", "offset": 0},
+          "x2": { "scale": "xscale", "field": "Spouses_1End2"},
+          "y": { "scale": "yscale", "field": "Name", "offset":{"signal": "TotalOffset + (bandHeight-stepGap)/2+0.5"}},
+          "height": { "signal": "stepGap-2"},
+          "fill": { "scale": "PersonTypeColour", "value": "Spouse"},
+          "opacity": {"value": 1}
+          ,"tooltip": {"signal":"ShowTooltips ? TooltipText : null"}
+          ,"href": {"signal": "showlinkurl && datum.Link"}
+          ,"cursor": {"signal": "showlinkurl && datum.Link != null ? 'pointer' : 'default'"}
+        }
+      }
+    },
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "spouse1rule1",
+      "from": {"data": "Spouses1"},
+      "encode": {
+        "enter": {
+        },
+        "update": {
+          "x": {"scale": "xscale", "field": "Spouses_1Begin", "offset":0},
+          "x2":{"scale": "xscale", "field": "Spouses_1Begin", "offset":0},
+          "y": {"scale": "yscale", "field": "Name", "offset": {"signal": "TotalOffset + (bandHeight-stepGap)/2"}},
+          "y2":{"scale": "yscale", "field": "Name", "offset": {"signal":"TotalOffset + (bandHeight-stepGap)/2+stepGap"}},
+          "strokeDash":{"signal": "SpouseBorderDash"},
+          "strokeWidth":{"signal": "SpouseBorderWidth"},
+          "stroke": {"signal": "SpouseBorderColour"},
+          "opacity": {"value":1}
+        }
+      }
+
+    },
+
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "spouse1rule2",
+      "from": {"data": "Spouses1"},
+      "encode": {
+        "enter": {
+          
+        },
+        "update": {
+          "x": {"scale": "xscale", "field": "Spouses_1End", "offset":0},
+          "x2":{"scale": "xscale", "field": "Spouses_1End", "offset":0},
+          "y": {"scale": "yscale", "field": "Name", "offset": {"signal": "TotalOffset + (bandHeight-stepGap)/2"}},
+          "y2":{"scale": "yscale", "field": "Name", "offset": {"signal":"TotalOffset + (bandHeight-stepGap)/2+stepGap"}},
+          "strokeDash":{"signal": "SpouseBorderDash"},
+          "strokeWidth":{"signal": "SpouseBorderWidth"},
+          "stroke": {"signal": "SpouseBorderColour"},
+          "opacity": {"value":1}
+        }
+      }
+    },
+
+
+    {
+      "type": "rect",
+      "clip": {"signal": "FitYears"},
+      "name": "spouse2",
+      "from": {"data": "Spouses2"},
+      "encode": {
+        "update": {
+          "x": { "scale": "xscale", "field": "Spouses_2Begin", "offset": 0},
+          "x2": { "scale": "xscale", "field": "Spouses_2End"},
+          "y": { "scale": "yscale", "field": "Name", "offset":{"signal": "TotalOffset + (bandHeight-stepGap)/2+0.5"}},
+          "height": { "signal": "stepGap-2"},
+          "fill": { "scale": "PersonTypeColour", "value": "Spouse2"},
+          "opacity": {"value": 1}
+          ,"tooltip": {"signal":"ShowTooltips ? TooltipText : null"}
+          ,"href": {"signal": "showlinkurl && datum.Link"}
+          ,"cursor": {"signal": "showlinkurl && datum.Link != null ? 'pointer' : 'default'"}
+        }
+      }
+    },
+
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "spouse2rule1",
+      "from": {"data": "Spouses2"},
+      "encode": {
+        "enter": {
+        },
+        "update": {
+          "x": {"scale": "xscale", "field": "Spouses_2Begin", "offset":0},
+          "x2":{"scale": "xscale", "field": "Spouses_2Begin", "offset":0},
+          "y": {"scale": "yscale", "field": "Name", "offset": {"signal": "TotalOffset + (bandHeight-stepGap)/2"}},
+          "y2":{"scale": "yscale", "field": "Name", "offset": {"signal":"TotalOffset + (bandHeight-stepGap)/2+stepGap"}},
+          "strokeDash":{"signal": "SpouseBorderDash"},
+          "strokeWidth":{"signal": "SpouseBorderWidth"},
+          "stroke": {"signal": "SpouseBorderColour"},
+          "opacity": {"value":1}
+        }
+      }
+
+    },
+
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "spouse2rule2",
+      "from": {"data": "Spouses2"},
+      "encode": {
+        "enter": {
+          
+        },
+        "update": {
+          "x": {"scale": "xscale", "field": "Spouses_2End", "offset":0},
+          "x2":{"scale": "xscale", "field": "Spouses_2End", "offset":0},
+          "y": {"scale": "yscale", "field": "Name", "offset": {"signal": "TotalOffset + (bandHeight-stepGap)/2"}},
+          "y2":{"scale": "yscale", "field": "Name", "offset": {"signal":"TotalOffset + (bandHeight-stepGap)/2+stepGap"}},
+          "strokeDash":{"signal": "SpouseBorderDash"},
+          "strokeWidth":{"signal": "SpouseBorderWidth"},
+          "stroke": {"signal": "SpouseBorderColour"},
+          "opacity": {"value":1}
+        }
+      }
+    },
+    
+
+
+    {
+      "type": "rect",
+      "clip": {"signal": "FitYears"},
+      "name": "spouse3",
+      "from": {"data": "Spouses3"},
+      "encode": {
+        "update": {
+          "x": { "scale": "xscale", "field": "Spouses_3Begin", "offset": 0},
+          "x2": { "scale": "xscale", "field": "Spouses_3End"},
+          "y": { "scale": "yscale", "field": "Name", "offset":{"signal": "TotalOffset + (bandHeight-stepGap)/2+0.5"}},
+          "height": { "signal": "stepGap-2"},
+          "fill": { "scale": "PersonTypeColour", "value": "Spouse3"},
+          "opacity": {"value": 1}
+          ,"tooltip": {"signal":"ShowTooltips ? TooltipText : null"}
+          ,"href": {"signal": "showlinkurl && datum.Link"}
+          ,"cursor": {"signal": "showlinkurl && datum.Link != null ? 'pointer' : 'default'"}
+        }
+      }
+    },
+
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "spouse3rule1",
+      "from": {"data": "Spouses3"},
+      "encode": {
+        "enter": {
+        },
+        "update": {
+          "x": {"scale": "xscale", "field": "Spouses_3Begin", "offset":0},
+          "x2":{"scale": "xscale", "field": "Spouses_3Begin", "offset":0},
+          "y": {"scale": "yscale", "field": "Name", "offset": {"signal": "TotalOffset + (bandHeight-stepGap)/2"}},
+          "y2":{"scale": "yscale", "field": "Name", "offset": {"signal":"TotalOffset + (bandHeight-stepGap)/2+stepGap"}},
+          "strokeDash":{"signal": "SpouseBorderDash"},
+          "strokeWidth":{"signal": "SpouseBorderWidth"},
+          "stroke": {"signal": "SpouseBorderColour"},
+          "opacity": {"value":1}
+        }
+      }
+
+    },
+
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "spouse3rule2",
+      "from": {"data": "Spouses3"},
+      "encode": {
+        "enter": {
+          
+        },
+        "update": {
+          "x": {"scale": "xscale", "field": "Spouses_3End", "offset":0},
+          "x2":{"scale": "xscale", "field": "Spouses_3End", "offset":0},
+          "y": {"scale": "yscale", "field": "Name", "offset": {"signal": "TotalOffset + (bandHeight-stepGap)/2"}},
+          "y2":{"scale": "yscale", "field": "Name", "offset": {"signal":"TotalOffset + (bandHeight-stepGap)/2+stepGap"}},
+          "strokeDash":{"signal": "SpouseBorderDash"},
+          "strokeWidth":{"signal": "SpouseBorderWidth"},
+          "stroke": {"signal": "SpouseBorderColour"},
+          "opacity": {"value":1}
+        }
+      }
+    },
+
+
+
+    {
+      "type": "rect",
+      "clip": {"signal": "FitYears"},
+      "name": "spouse4",
+      "from": {"data": "Spouses4"},
+      "encode": {
+        "update": {
+          "x": { "scale": "xscale", "field": "Spouses_4Begin", "offset": 0},
+          "x2": { "scale": "xscale", "field": "Spouses_4End"},
+          "y": { "scale": "yscale", "field": "Name", "offset":{"signal": "TotalOffset + (bandHeight-stepGap)/2+0.5"}},
+          "height": { "signal": "stepGap-2"},
+          "fill": { "scale": "PersonTypeColour", "value": "Spouse3"},
+          "opacity": {"value": 1}
+          ,"tooltip": {"signal":"ShowTooltips ? TooltipText : null"}
+          ,"href": {"signal": "showlinkurl && datum.Link"}
+          ,"cursor": {"signal": "showlinkurl && datum.Link != null ? 'pointer' : 'default'"}
+        }
+      }
+    },
+
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "spouse4rule1",
+      "from": {"data": "Spouses4"},
+      "encode": {
+        "enter": {
+        },
+        "update": {
+          "x": {"scale": "xscale", "field": "Spouses_4Begin", "offset":0},
+          "x2":{"scale": "xscale", "field": "Spouses_4Begin", "offset":0},
+          "y": {"scale": "yscale", "field": "Name", "offset": {"signal": "TotalOffset + (bandHeight-stepGap)/2"}},
+          "y2":{"scale": "yscale", "field": "Name", "offset": {"signal":"TotalOffset + (bandHeight-stepGap)/2+stepGap"}},
+          "strokeDash":{"signal": "SpouseBorderDash"},
+          "strokeWidth":{"signal": "SpouseBorderWidth"},
+          "stroke": {"signal": "SpouseBorderColour"},
+          "opacity": {"value":1}
+        }
+      }
+
+    },
+
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "spouse4rule2",
+      "from": {"data": "Spouses4"},
+      "encode": {
+        "enter": {
+          
+        },
+        "update": {
+          "x": {"scale": "xscale", "field": "Spouses_4End", "offset":0},
+          "x2":{"scale": "xscale", "field": "Spouses_4End", "offset":0},
+          "y": {"scale": "yscale", "field": "Name", "offset": {"signal": "TotalOffset + (bandHeight-stepGap)/2"}},
+          "y2":{"scale": "yscale", "field": "Name", "offset": {"signal":"TotalOffset + (bandHeight-stepGap)/2+stepGap"}},
+          "strokeDash":{"signal": "SpouseBorderDash"},
+          "strokeWidth":{"signal": "SpouseBorderWidth"},
+          "stroke": {"signal": "SpouseBorderColour"},
+          "opacity": {"value":1}
+        }
+      }
+    },
+
+
+
+
+    {
+      "type": "rect",
+      "clip": {"signal": "FitYears"},
+      "name": "reign",
+      "from": {"data": "MonarchEngland"},
+       
+      "encode": {
+        "update": {
+          "x": {
+            "scale": "xscale",
+            "field": "Reign1Begin",
+            "offset": 0
+            //,"timeUnit": "year"
+          },
+          "x2": {
+            "scale": "xscale",
+            "field": "Reign1End2"
+            //,"timeUnit": "year"
+          },
+          "y": {
+            "scale": "yscale",
+            "field": "Name",
+            "offset":{"signal": "TotalOffset + (bandHeight-stepGap)/2+.5"}
+          },
+          "height": {
+            "signal": "stepGap/datum._names-1"
+          },
+          "fill": {
+            "scale": "MonarchCountry",
+            "field": "Country of Title"
+            //"value": "Reign"
+          },
+          "opacity": {"value": 1}
+          ,"tooltip": {"signal":"ShowTooltips ? TooltipText : null"}
+          ,"href": {"signal": "showlinkurl && datum.Link"}
+          ,"cursor": {"signal": "showlinkurl && datum.Link != null ? 'pointer' : 'default'"}
+
+        }
+      }
+    },
+
+    
+
+    {
+      "type": "rect",
+      "clip": {"signal": "FitYears"},
+      "name": "SecondReignRect",
+      "from": {"data": "SecondReign"},
+      "encode": {
+        "update": {
+          "x": {
+            "scale": "xscale",
+            "field": "Reign2Begin",
+            "offset": 0
+            //,"timeUnit": "year"
+          },
+          "x2": {
+            "scale": "xscale",
+            "field": "Reign2End"
+            //,"timeUnit": "year"
+          },
+          "y": {
+            "scale": "yscale",
+            "field": "Name",
+            "offset":{"signal": "TotalOffset + (bandHeight-stepGap)/2+0.5"}
+          },
+          "height": {
+            "signal": "stepGap/datum._names-1"
+          },
+          "fill": {
+            "scale": "MonarchCountry",
+            "field": "Country of Title"
+            //"value": "Reign"
+          },
+          "opacity": {"value": 1}
+          ,"tooltip": {"signal":"ShowTooltips ? TooltipText : null"}
+          ,"href": {"signal": "showlinkurl && datum.Link"}
+          ,"cursor": {"signal": "showlinkurl && datum.Link != null ? 'pointer' : 'default'"}
+        }
+      }
+    },
+    
+    {
+      "type": "rect",
+      "clip": {"signal": "FitYears"},
+      "name": "reignScotland",
+      "from": {"data": "MonarchScotland"},
+       
+      "encode": {
+        "update": {
+          "x": {
+            "scale": "xscale",
+            "field": "Reign1Begin",
+            "offset": 0
+            //,"timeUnit": "year"
+          },
+          "x2": {
+            "scale": "xscale",
+            "field": "Reign1End2"
+            //,"timeUnit": "year"
+          },
+          "y": {
+            "scale": "yscale",
+            "field": "Name",
+            "offset":{"signal": "TotalOffset + (bandHeight-stepGap)/2+(stepGap/datum._names)*(datum._names-1)"}
+          },
+          "height": {
+            "signal": "stepGap/datum._names"
+          },
+          "fill": {
+            "scale": "MonarchCountry",
+            "field": "Country of Title"
+            //"value": "Reign"
+          },
+          "opacity": {"value": 1}
+          ,"tooltip": {"signal":"ShowTooltips ? TooltipText : null"}
+          ,"href": {"signal": "showlinkurl && datum.Link"}
+          ,"cursor": {"signal": "showlinkurl && datum.Link != null ? 'pointer' : 'default'"}
+        }
+      }
+    },
+    {
+      "type": "rect",
+      "clip": {"signal": "FitYears"},
+      "name": "reignIraland",
+      "from": {"data": "MonarchIreland"},
+       
+      "encode": {
+        "update": {
+          "x": {
+            "scale": "xscale",
+            "field": "Reign1Begin",
+            "offset": 0
+            //,"timeUnit": "year"
+          },
+          "x2": {
+            "scale": "xscale",
+            "field": "Reign1End2"
+            //,"timeUnit": "year"
+          },
+          "y": {
+            "scale": "yscale",
+            "field": "Name",
+            "offset":{"signal": "TotalOffset + (bandHeight-stepGap)/2+(stepGap/datum._names)*(datum._names-1)"}
+          },
+          "height": {
+            "signal": "stepGap/datum._names-1"
+          },
+          "fill": {
+            "scale": "MonarchCountry",
+            "field": "Country of Title"
+            //"value": "Reign"
+          },
+          "opacity": {"value": 1}
+          ,"tooltip": {"signal":"ShowTooltips ? TooltipText : null"}
+          ,"href": {"signal": "showlinkurl && datum.Link"}
+          ,"cursor": {"signal": "showlinkurl && datum.Link != null ? 'pointer' : 'default'"}
+        }
+      }
+    },
+
+    
+
+
+    
+    {
+      "type": "rect",
+      "clip": {"signal": "FitYears"},
+      "name": "Regent",
+      "from": {"data": "regents"},
+      "encode": {
+        "update": {
+          "x": {
+            "scale": "xscale",
+            "field": "RegentBegin",
+            "offset": 0
+          },
+          "x2": {
+            "scale": "xscale",
+            "field": "RegentEnd"
+          },
+          "y": {
+            "scale": "yscale",
+            "field": "Name",
+            "offset":{"signal": "TotalOffset + (bandHeight-stepGap)/2+0.5"}
+          },
+          "height": {
+            "signal": "stepGap-2"
+          },
+          "fill": {
+            "scale": "PersonTypeColour",
+            "value": "Regent"
+          },
+          "opacity": {"value": 1}
+          ,"tooltip": {"signal":"ShowTooltips ? TooltipText : null"}
+          ,"href": {"signal": "showlinkurl && datum.Link != null ? datum.Link : null"}
+          ,"cursor": {"signal": "showlinkurl && datum.Link != null ? 'pointer' : 'default'"}
+        }
+      }
+    },
+
+
+    
+
+
+
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "ruleBirthMarkFather",
+      //"data": [{}],
+      "from": {"data": "monarchBirthLineOwn"},
+      "encode": {
+        "update": {
+          "x": {
+            "scale": "xscale",
+            "field":"LifeBegin"
+          },
+          "y": {
+            "scale": "yscale",
+            "field":"Name",
+            "offset":{"signal": "TotalOffset + bandwidth('yscale')/2"}
+          },
+          "x2": {
+            "scale": "xscale",
+            "field":"LifeBegin"
+          },
+          "y2": {
+            "scale": "yscale",
+            "field":"Father",
+            "offset":{"signal": "TotalOffset + bandwidth('yscale')/2"}
+          },
+          "stroke": {"value": "black"},
+          "Opacity": {"signal": "BirthLines?BirthLineOpacity:0"},
+          "strokeOpacity": {"signal": "BirthLines?BirthLineOpacity:0"}
+        }
+      }
+    },
+    {
+      "type": "rule",
+      "clip": {"signal": "FitYears"},
+      "name": "ruleBirthMarkMather",
+      //"data": [{}],
+      "from": {"data": "monarchBirthLineOwn"},
+      "encode": {
+        "update": {
+          "x": {
+            "scale": "xscale",
+            "field":"LifeBegin"
+          },
+          "y": {
+            "scale": "yscale",
+            "field":"Name",
+            "offset":{"signal": "TotalOffset + bandwidth('yscale')/2"}
+          },
+          "x2": {
+            "scale": "xscale",
+            "field":"LifeBegin"
+          },
+          "y2": {
+            "scale": "yscale",
+            "field":"Mother",
+            "offset":{"signal": "TotalOffset + bandwidth('yscale')/2"}
+          },
+          "stroke": {"value": "black"},
+          "Opacity": {"signal": "BirthLines?BirthLineOpacity:0"},
+          "strokeOpacity": {"signal": "BirthLines?BirthLineOpacity:0"}
+        }
+      }
+    },
+    {
+      "type": "symbol",
+      "clip": {"signal": "FitYears"},
+      "name": "birthmark-own",
+      "from": {"data": "monarchBirthLineOwn"},
+      "encode": {
+        "update": {
+          "x": {
+            "scale": "xscale",
+            "field":"LifeBegin"
+          },
+          "y": {
+            "scale": "yscale",
+            "field":"Name",
+            "offset":{"signal": "TotalOffset + bandwidth('yscale')/2"}
+          },
+          "size": {"signal": "if(round(stepGap*0.7,0)>30,30,if(round(stepGap*0.7,0)<10,10,round(stepGap*0.7,0)))"},
+          
+          "stroke": {"value": "black"},
+          "shape": {"value": "circle"},
+          "fill": {"value": "black"},
+          "Opacity": {"signal": "BirthLines?BirthLineOpacity:0"},
+          "fillOpacity": {"signal": "BirthLines?BirthLineOpacity:0"},
+          "strokeOpacity": {"signal": "BirthLines?BirthLineOpacity:0"}
+        }
+      }
+    },
+    {
+      "type": "symbol",
+      "clip": {"signal": "FitYears"},
+      "name": "birthmark-father",
+      "from": {"data": "monarchBirthLineFather"},
+      "encode": {
+        "update": {
+          "x": {
+            "scale": "xscale",
+            "field":"LifeBegin"
+          },
+          "y": {
+            "scale": "yscale",
+            "field":"Father",
+            "offset":{"signal": "TotalOffset + bandwidth('yscale')/2"}
+          },
+          "size": {"signal": "if(round(stepGap*0.7,0)>30,30,if(round(stepGap*0.7,0)<10,10,round(stepGap*0.7,0)))"},
+          "fill": {"value": "black"},
+          "stroke": {"value": "black"},
+          "shape": {"value": "circle"},
+          "Opacity": {"signal": "BirthLines?BirthLineOpacity:0"},
+          "fillOpacity": {"signal": "BirthLines?BirthLineOpacity:0"},
+          "strokeOpacity": {"signal": "BirthLines?BirthLineOpacity:0"}
+        }
+      }
+    },
+    {
+      "type": "symbol",
+      "clip": {"signal": "FitYears"},
+      "name": "birthmark-mother",
+      "from": {"data": "monarchBirthLineMother"},
+      "encode": {
+        "update": {
+          "x": {
+            "scale": "xscale",
+            "field":"LifeBegin"
+          },
+          "y": {
+            "scale": "yscale",
+            "field":"Mother",
+            "offset":{"signal": "TotalOffset + bandwidth('yscale')/2"}
+          },
+          "size": {"signal": "if(round(stepGap*0.7,0)>30,30,if(round(stepGap*0.7,0)<10,10,round(stepGap*0.7,0)))"},
+           "fill": {"value": "black"},
+          "stroke": {"value": "black"},
+          "shape": {"value": "circle"},
+          "Opacity": {"signal": "BirthLines?BirthLineOpacity:0"},
+          "fillOpacity": {"signal": "BirthLines?BirthLineOpacity:0"},
+          "strokeOpacity": {"signal": "BirthLines?BirthLineOpacity:0"}
+        }
+      }
+    },
+    {
+      "type": "text",
+      "clip": {"signal": "FitYears"},
+      "name": "PersonName",
+      "from": {"data": "persons"},
+      "encode": {
+        "update": {
+          "x": {"scale": "xscale",
+            "field": "LifeBegin",
+            "offset": 5},
+          "y": {
+            "scale": "yscale",
+            "field": "Name",
+            "offset":{"signal": "TotalOffset + bandHeight/2"}
+          },
+          "text": {"field": "Name"},
+          "font": {"value": "Segoe UI"},
+          "fontSize": {"signal": "if(round(stepGap*0.55,0)>18,18,round(stepGap*0.55,0))"},
+          "fontStyle": {
+            "value": "normal"
+          },
+          "baseline": {
+            "value": "middle"
+          },
+          "align": {"value": "left"},
+          "fill": {
+            "signal": "datum.Name === selectedName ? '#000000' : '#3f444d'"
+          },
+          
+          "opacity": {"value": 1}
+          ,"tooltip": {"signal":"ShowTooltips ? TooltipText : null"}
+          ,"href": {"signal": "showlinkurl && datum.Link"}
+          ,"cursor": {"signal": "showlinkurl && datum.Link != null ? 'pointer' : 'default'"}
+        }
+      }
+
+    },
+    {
+      "type": "symbol",
+      "clip": {"signal": "FitYears"},
+      "name": "death",
+      "from": {"data": "persons"},
+      "encode": {
+        "update": {
+          "x": {
+            "scale":"xscale",
+            "field": "LifeEnd2",
+            "offset": 15
+          },
+          "y": {
+            "scale": "yscale",
+            "field": "Name"
+            ,"offset":{"signal": "TotalOffset + bandHeight*0.5"}
+            //"band": 0.5
+          },
+          "shape": { 
+            "scale": "death",
+            "field": "DeathType"
+          },
+          "size": {"signal": "bandHeight/12>1.5 ? 1.5 : bandHeight/12"},
+          "fill": {
+            "value": "black"
+          },
+          "opacity": {"signal": "DeathMarks?1:0"},
+          "strokeOpacity": {"signal": "DeathMarks?1:0"},
+          "fillOpacity": {"signal": "DeathMarks?1:0"}
+        }
+      }
+    }
+
+
+// //     ,
+// //     {
+// //       "type": "rect",
+// //       "name": "BespokeTooltip",
+// //       "from": {"data": "cleandataset"},
+// //       "encode": {
+        
+// //         "update": {
+// //         "x":{"value":30},
+// //         "width": {"value": 500},
+// //         "y":{"value":450},
+// //         "height": {"value": 300 },
+// //         "fill":{"value":"#cecece"},
+// //         //"tooltip": {"signal":"ShowTooltips ? TooltipText : null"},
+  
+// //         "fillOpacity":{"signal": "tooltip.Name?1:0"}
+// //         }
+// //       }
+// //     }
+// // ,
+// // {
+// //   "type": "text",
+// //   "name":"BespokeTooltipTextTitle",
+// //   "encode": {
+// //     "update": {
+// //       "x": {"value": 50},
+// //       "y": {"value": 500},
+// //       "width":{"value":100},
+// //       "fill":{"value":"red"},
+// //       "text": {"signal": "tooltip.Name != null && !ShowTooltips ? (indexof(TooltipText,'\\n')>0 ? slice(TooltipText,0,indexof(TooltipText,'\\n')) : TooltipText ): null"},
+// //       "fontSize": {"value": 20},
+// //       "lineBreak":{"value":"\n"}
+// //     }
+// //   }
+// // },
+// // {
+// //   "type": "text",
+// //   "name":"BespokeTooltipText",
+// //   "encode": {
+// //     "update": {
+// //       "x": {"value": 50},
+// //       "y": {"value": 530},
+// //       "width":{"value":100},
+// //       "text": {"signal": "tooltip.Name != null && !ShowTooltips ? indexof(TooltipText,'\\n')>0 ? replace(slice(TooltipText,indexof(TooltipText,'\\n')+1,length(TooltipText)), '(.{20})', '$1~') : replace(TooltipText, '(.{20}) ', '$1\\n') : null"},
+// //       "fontSize": {"value": 16},
+// //       "lineBreak":{"value":"\n"}
+// //     }
+// //   }
+// // }
+
+  ]
+  
+  
+}
